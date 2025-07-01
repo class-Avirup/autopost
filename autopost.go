@@ -11,8 +11,6 @@ import (
 	"regexp"
 	"strings"
 	"time"
-
-	"github.com/joho/godotenv"
 	"github.com/robfig/cron/v3"
 )
 
@@ -49,7 +47,11 @@ var (
 )
 
 func main() {
-	_ = godotenv.Load()
+	// Load environment variables from .env file
+	//err := godotenv.Load()
+	//if err != nil {
+	//	log.Fatal("❌ Error loading .env file")
+	//}
 
 	GroqAPIKey = os.Getenv("GROQ_API_KEY")
 	BackendAPI = os.Getenv("BACKEND_API_URL")
