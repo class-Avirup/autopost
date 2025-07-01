@@ -49,11 +49,7 @@ var (
 )
 
 func main() {
-	// Load environment variables from .env file
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("❌ Error loading .env file")
-	}
+	_ = godotenv.Load()
 
 	GroqAPIKey = os.Getenv("GROQ_API_KEY")
 	BackendAPI = os.Getenv("BACKEND_API_URL")
@@ -66,9 +62,9 @@ func main() {
 	}
 
 	log.Println("✅ Starting production cron job...")
-
 	runPromptGeneration()
 
+	// Run cron daily at 9 AM UTC
 	c := cron.New()
 	c.AddFunc("0 9 * * *", func() {
 		log.Println("⏳ Scheduled prompt generation started...")
@@ -76,7 +72,18 @@ func main() {
 	})
 	c.Start()
 
-	select {}
+	// === 🔊 Dummy HTTP server for Render Web Service ===
+	go func() {
+		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("✅ Autopost worker is running.\n"))
+		})
+		log.Println("🌐 Dummy HTTP server listening on :8080")
+		if err := http.ListenAndServe(":8080", nil); err != nil {
+			log.Fatal("❌ HTTP Server error:", err)
+		}
+	}()
+
+	select {} // keep alive
 }
 
 func runPromptGeneration() {
@@ -141,13 +148,9 @@ func getPromptFromGroq(userPrompt string) (string, error) {
 	requestBody := map[string]interface{}{
 		"model": "llama3-70b-8192",
 		"messages": []map[string]string{
-			{
-				"role":    "user",
-				"content": userPrompt,
-			},
+			{"role": "user", "content": userPrompt},
 		},
 	}
-
 	jsonBody, _ := json.Marshal(requestBody)
 
 	req, err := http.NewRequest("POST", GroqEndpoint, bytes.NewBuffer(jsonBody))
